@@ -62,7 +62,7 @@ public class ClientSide {
         randombytes.nextBytes(nonce);
     }
     public byte[] getNonce(){
-
+        return nonce;
     }
     public byte[] decryptNonce(byte[] nonce){
         byte[] freshnonce=new byte[32];

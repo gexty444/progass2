@@ -46,6 +46,7 @@ public class ClientWithoutSecurity {
 			byte[] generated_nonce=protocols.getNonce();
 			toServer.write(generated_nonce);
 
+
 			//TODO: receive the nonce (use while loop to receive all the bytes as the file may be large)
 
 			//TODO: request servers signed certificate
