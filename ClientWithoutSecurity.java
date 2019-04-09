@@ -41,7 +41,36 @@ public class ClientWithoutSecurity {
 			//receiving the encrypted message
 			byte[] encryptedmessage=toByteArray(fromServer);
 
+			//generating and sending the nonce
 			protocols.createNonce();
+			byte[] generated_nonce=protocols.getNonce();
+			toServer.write(generated_nonce);
+
+			//TODO: receive the nonce (use while loop to receive all the bytes as the file may be large)
+
+			//TODO: request servers signed certificate
+
+			//TODO: receive signed certificate and validate
+
+
+			//TODO: send confirmation of server ID
+
+
+			//TODO: receive newly sent nonce from server
+
+
+			//TODO: request servers signed certificate
+
+
+			//TODO: encrypt nonce with private key
+
+
+			//TODO: give server public key
+
+			//TODO: send public key
+
+
+			//TODO: receive confirmation message from server
 
 
 			System.out.println("Sending file...");
