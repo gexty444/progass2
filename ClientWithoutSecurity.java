@@ -28,6 +28,8 @@ public class ClientWithoutSecurity {
 		ClientSide protocols=new ClientSide("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\server.crt");
 		long timeStarted = System.nanoTime();
 
+		BufferedReader stringtoServer = null;
+		PrintWriter writeToServer=null;
 		try {
 
 			System.out.println("Establishing connection to server...");
@@ -36,8 +38,13 @@ public class ClientWithoutSecurity {
 			clientSocket = new Socket(serverAddress, port);
 			toServer = new DataOutputStream(clientSocket.getOutputStream());
 			fromServer = new DataInputStream(clientSocket.getInputStream());
-			toServer.writeBytes("Hello SecStore, please prove your identity! ");
-			toServer.flush();
+			writeToServer = new PrintWriter(clientSocket.getOutputStream());
+			stringtoServer=new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+			writeToServer.println("Hello SecStore, please prove your identity!");
+			writeToServer.flush();
+
+
 			//receiving the encrypted message
 			byte[] encryptedmessage=toByteArray(fromServer);
 
@@ -48,6 +55,7 @@ public class ClientWithoutSecurity {
 
 
 			//TODO: receive the nonce (use while loop to receive all the bytes as the file may be large)
+
 
 			//TODO: request servers signed certificate
 

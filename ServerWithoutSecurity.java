@@ -1,9 +1,8 @@
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
+import javax.crypto.Cipher;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.util.Scanner;
 
@@ -45,11 +44,53 @@ public class ServerWithoutSecurity {
 		FileOutputStream fileOutputStream = null;
 		BufferedOutputStream bufferedFileOutputStream = null;
 
+
+		BufferedReader bread=null;
+
 		try {
 			welcomeSocket = new ServerSocket(port);
 			connectionSocket = welcomeSocket.accept();
 			fromClient = new DataInputStream(connectionSocket.getInputStream());
 			toClient = new DataOutputStream(connectionSocket.getOutputStream());
+
+			//Encrypt message with private key
+			BufferedReader readFromClient=new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+
+			PrintWriter writeClientInput=new PrintWriter(connectionSocket.getOutputStream());
+
+			while(!readFromClient.readLine().equals("Hello SecStore, please prove your identity!")){
+				// busy wait
+			}
+
+			PrivateKey privateKey=null;//Temp solution LOL
+
+			Cipher encryptMessageToClient=Cipher.getInstance("RSA");
+			String message="Hello, this is SecStore!";
+			byte[] byteMessage=message.getBytes();
+			encryptMessageToClient.init(Cipher.ENCRYPT_MODE, privateKey);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 			//Secure handshake should be done here
 			Scanner s=new Scanner(fromClient);
 			String output = s.hasNext() ? s.next() : "";
