@@ -1,5 +1,8 @@
 import java.io.*;
 import java.net.Socket;
+import java.security.PublicKey;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 
 //encrypt the file here before sending
@@ -38,15 +41,8 @@ public class ClientWithoutSecurity {
 			clientSocket = new Socket(serverAddress, port);
 			toServer = new DataOutputStream(clientSocket.getOutputStream());
 			fromServer = new DataInputStream(clientSocket.getInputStream());
-			writeToServer = new PrintWriter(clientSocket.getOutputStream());
-			stringtoServer=new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-			writeToServer.println("Hello SecStore, please prove your identity!");
-			writeToServer.flush();
-
 
 			//receiving the encrypted message
-			byte[] encryptedmessage=toByteArray(fromServer);
 
 			//generating and sending the nonce
 			protocols.createNonce();
@@ -55,12 +51,45 @@ public class ClientWithoutSecurity {
 
 
 			//TODO: receive the nonce (use while loop to receive all the bytes as the file may be large)
-
-
+			int sizeofnonce=fromServer.readInt();
+			byte[] receivedNonce=new byte[sizeofnonce];
+			fromServer.readFully(receivedNonce);
 			//TODO: request servers signed certificate
+            try{
+                writeToServer=new PrintWriter(clientSocket.getOutputStream(),true);
+                System.out.println("Sending request");
+                writeToServer.println("Give me your certificate!");
+                writeToServer.flush();
+            }catch (IOException e){
+                e.printStackTrace();
+            }
 
+
+			System.out.println("request for certificate sent");
 			//TODO: receive signed certificate and validate
+			int certLength=fromServer.readInt();
+			byte[] receivedCert=new byte[certLength];
+			fromServer.readFully(receivedCert);
+            System.out.println("Certificate received");
 
+//			InputStream is=new FileInputStream("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
+			ClientSide receivecert=new ClientSide("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
+			X509Certificate cacert=receivecert.get_Cert_object();
+            System.out.println(cacert);
+			PublicKey pbkey=cacert.getPublicKey();
+			System.out.println("Extracted public key");
+
+
+			//transform byte to cert
+			InputStream ins=new ByteArrayInputStream(receivedCert);
+            CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+            X509Certificate cert= (X509Certificate) certFactory.generateCertificate(ins);
+            System.out.println(cert);
+
+            //check validity and verify
+            cert.checkValidity();
+            System.out.println("Cert valid");
+//            cert.verify(pbkey);
 
 			//TODO: send confirmation of server ID
 

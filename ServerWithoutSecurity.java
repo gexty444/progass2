@@ -57,15 +57,10 @@ public class ServerWithoutSecurity {
 			connectionSocket = welcomeSocket.accept();
 			fromClient = new DataInputStream(connectionSocket.getInputStream());
 			toClient = new DataOutputStream(connectionSocket.getOutputStream());
-
-			//Encrypt message with private key
 			BufferedReader readFromClient=new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 
-			PrintWriter writeClientInput=new PrintWriter(connectionSocket.getOutputStream());
+			//Encrypt message with private key
 
-			while(!readFromClient.readLine().equals("Hello SecStore, please prove your identity!")){
-				// busy wait
-			}
 			//get private key from .der file
 			Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\privateServer.der");
 			byte[] privKeyByteArray = Files.readAllBytes(path);
@@ -73,22 +68,42 @@ public class ServerWithoutSecurity {
 			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 			PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
 //			System.out.println(myPrivKey);
-
+			byte[] buffer =new byte[32];
+			//get our nonce from client
+			fromClient.readFully(buffer);
+			System.out.println("Got nonce from client");
+			//encrypt nonce
 			Cipher encryptMessageToClient=Cipher.getInstance("RSA");
-			String message="Hello, this is SecStore!";
-			byte[] byteMessage=message.getBytes();
 			encryptMessageToClient.init(Cipher.ENCRYPT_MODE, privateKey);
+			byte[] encryptednonce=encryptMessageToClient.doFinal(buffer);
+			toClient.writeInt(encryptednonce.length);
+			System.out.println("Nonce length transferred");
+			toClient.flush();
+			toClient.write(encryptednonce);
+			System.out.println("Nonce transferred");
+			toClient.flush();
 
+			String certreq=readFromClient.readLine();
 
+			//TODO:send certificate
+			if(certreq.equals("Give me your certificate!")) {
+				System.out.println("Preparing cert");
+				File certificate = new File("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\server.crt");
+				byte[] certByte = new byte[(int) certificate.length()];
+				try {
+					FileInputStream fis = new FileInputStream(certificate);
+					fis.read(certByte);
+					fis.close();
 
-
-
-
-
-
-
-
-
+				} catch (IOException ioExp) {
+					ioExp.printStackTrace();
+				}
+				toClient.writeInt(certByte.length);
+				toClient.flush();
+				toClient.write(certByte);
+				toClient.flush();
+				System.out.println("Cert sent");
+			}
 
 
 
@@ -152,5 +167,6 @@ public class ServerWithoutSecurity {
 		} catch (Exception e) {e.printStackTrace();}
 
 	}
+
 
 }

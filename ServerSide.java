@@ -9,6 +9,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 
 public class ServerSide {
 
+
     private static byte[] challenge=new byte[32];
 
     public PrivateKey getPrivateKey() throws IOException {
@@ -21,5 +22,6 @@ public class ServerSide {
         SecureRandom newchallenge=new SecureRandom();
         newchallenge.nextBytes(challenge);
     }
+
 
 }
