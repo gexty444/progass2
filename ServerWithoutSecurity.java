@@ -2,8 +2,13 @@ import javax.crypto.Cipher;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Scanner;
 
 //SecStore, leave file as a stream of bytes
@@ -61,8 +66,13 @@ public class ServerWithoutSecurity {
 			while(!readFromClient.readLine().equals("Hello SecStore, please prove your identity!")){
 				// busy wait
 			}
-
-			PrivateKey privateKey=null;//Temp solution LOL
+			//get private key from .der file
+			Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\privateServer.der");
+			byte[] privKeyByteArray = Files.readAllBytes(path);
+			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyByteArray);
+			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+			PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+//			System.out.println(myPrivKey);
 
 			Cipher encryptMessageToClient=Cipher.getInstance("RSA");
 			String message="Hello, this is SecStore!";
