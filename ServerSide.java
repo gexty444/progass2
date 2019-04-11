@@ -13,15 +13,17 @@ public class ServerSide {
     private static byte[] challenge=new byte[32];
 
     public PrivateKey getPrivateKey() throws IOException {
-        byte[] privateKey= Files.readAllBytes(Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\privateServer.key"));
+        byte[] privateKey= Files.readAllBytes(Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.key"));
         PrivateKey retVal=null; //LOL
         return retVal;
     }
 
-    public void createChallenge(){
+    public byte[] createChallenge(){
         SecureRandom newchallenge=new SecureRandom();
         newchallenge.nextBytes(challenge);
+        return challenge;
     }
+
 
 
 }

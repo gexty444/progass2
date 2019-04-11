@@ -62,7 +62,7 @@ public class ServerWithoutSecurity {
 			//Encrypt message with private key
 
 			//get private key from .der file
-			Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\privateServer.der");
+			Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.der");
 			byte[] privKeyByteArray = Files.readAllBytes(path);
 			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyByteArray);
 			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
@@ -72,6 +72,8 @@ public class ServerWithoutSecurity {
 			//get our nonce from client
 			fromClient.readFully(buffer);
 			System.out.println("Got nonce from client");
+
+
 			//encrypt nonce
 			Cipher encryptMessageToClient=Cipher.getInstance("RSA");
 			encryptMessageToClient.init(Cipher.ENCRYPT_MODE, privateKey);
@@ -88,7 +90,7 @@ public class ServerWithoutSecurity {
 			//TODO:send certificate
 			if(certreq.equals("Give me your certificate!")) {
 				System.out.println("Preparing cert");
-				File certificate = new File("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\server.crt");
+				File certificate = new File("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.crt");
 				byte[] certByte = new byte[(int) certificate.length()];
 				try {
 					FileInputStream fis = new FileInputStream(certificate);
@@ -104,6 +106,8 @@ public class ServerWithoutSecurity {
 				toClient.flush();
 				System.out.println("Cert sent");
 			}
+			ServerSide sprotocols=new ServerSide();
+//			byte[] newChallenge=sprotocols.createChallenge();
 
 
 
