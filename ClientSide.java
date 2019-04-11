@@ -1,3 +1,5 @@
+package ass2;
+
 import javax.crypto.Cipher;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -90,15 +92,12 @@ public class ClientSide {
 
 
     }
-    public void checkNonce(byte[] serverNonce, byte[] clientNonce) throws nonceFailedException {
-        try{
-            if(!Arrays.equals(serverNonce, clientNonce))
-                throw new nonceFailedException("Nonce check failed.");
-            else{
-                System.out.println("Nonce check passed!");
-            }
-        }
-        catch (nonceFailedException e){
+    public boolean checkNonce(byte[] serverNonce, byte[] clientNonce){
+        if(!Arrays.equals(serverNonce, clientNonce))
+            return false;
+        else{
+            System.out.println("Nonce check passed!");
+            return true;
         }
 
     }

@@ -1,3 +1,5 @@
+package ass2;
+
 import javax.crypto.Cipher;
 import java.io.*;
 import java.net.Socket;
@@ -30,7 +32,6 @@ public class ClientWithoutSecurity {
         FileInputStream fileInputStream = null;
         BufferedInputStream bufferedFileInputStream = null;
         ClientSide protocols = new ClientSide();
-        long timeStarted = System.nanoTime();
 
         BufferedReader stringtoServer = null;
         PrintWriter writeToServer = null;
@@ -76,6 +77,7 @@ public class ClientWithoutSecurity {
             fromServer.readFully(receivedCert);
             System.out.println("Certificate received");
 
+            // Extract CA's public key from CACSE.crt
 //			InputStream is=new FileInputStream("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
             protocols.setCrt_path("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
             X509Certificate cacert = protocols.get_Cert_object(); //get x509cert oject from cacse.crt
@@ -90,74 +92,103 @@ public class ClientWithoutSecurity {
 
 //            System.out.println(cert);
 
-            //check validity and verify
+            //check validity and verify of Server's cert with CA's public key
             serverCert.checkValidity();
             System.out.println("Cert valid");
             serverCert.verify(pbkey);
             System.out.println("Cert verified");
 
             //TODO: Extract Server public key and get nonce and check nonce
-            PublicKey serverPublicKey=serverCert.getPublicKey();
+            PublicKey serverPublicKey = serverCert.getPublicKey();
             protocols.setCAcert(serverCert);
             protocols.setServerKey(serverPublicKey);
-            byte[] serverNonce=protocols.decryptNonce(receivedNonce);
-            protocols.checkNonce(serverNonce, generated_nonce);
+            byte[] serverNonce = protocols.decryptNonce(receivedNonce);
+            Boolean nonceCheck = protocols.checkNonce(serverNonce, generated_nonce);
+
+            // if nonce check passed
+            if (nonceCheck) {
+                System.out.println("Server check passed (AP passed)");
+                writeToServer.println("Handshake for file upload");
+                writeToServer.flush();
+            } else {       // if nonce check failed, send bye message and close all connections
+                System.out.println("Server check failed (AP failed)");
+                writeToServer.println("Bye, you liar");
+                writeToServer.flush();
+                // close all connections
+                toServer.close();
+                fromServer.close();
+                writeToServer.close();
+                clientSocket.close();
+            }
+
+
+
+            // Start file transfer
+            System.out.println("Sending file...");
+
+            // start time counter
+            long timeStarted = System.nanoTime();
+
+            // Initialise RSA cipher using server's public key
+            Cipher encryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            encryptCipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
+
+
+
+
+
+
+
+
+
             //TODO: send confirmation of server ID
-
-
-
             //TODO: receive newly sent nonce from server
-
-
             //TODO: request servers signed certificate
-
-
             //TODO: encrypt nonce with private key
-
-
             //TODO: give server public key
-
             //TODO: send public key
-
-
             //TODO: receive confirmation message from server
 
 
-            System.out.println("Sending file...");
-            // Send the filename
-            toServer.writeInt(0);
-            toServer.writeInt(filename.getBytes().length);
-            toServer.write(filename.getBytes());
-            //toServer.flush();
+//            System.out.println("Sending file...");
+//            // Send the filename
+//            toServer.writeInt(0);
+//            toServer.writeInt(filename.getBytes().length);
+//            toServer.write(filename.getBytes());
+//            //toServer.flush();
+//
+//            // Open the file
+//            fileInputStream = new FileInputStream(filename);
+//            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+//
+//            byte[] fromFileBuffer = new byte[117];
+//
+//            // Send the file
+//            for (boolean fileEnded = false; !fileEnded; ) {
+//                numBytes = bufferedFileInputStream.read(fromFileBuffer);
+//                fileEnded = numBytes < 117;
+//
+//                toServer.writeInt(1);
+//                toServer.writeInt(numBytes);
+//                toServer.write(fromFileBuffer);
+//                toServer.flush();
+//            }
+//
+//            bufferedFileInputStream.close();
+//            fileInputStream.close();
+//
+//            System.out.println("Closing connection...");
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        long timeTaken = System.nanoTime() - timeStarted;
+//        System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 
-            // Open the file
-            fileInputStream = new FileInputStream(filename);
-            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-
-            byte[] fromFileBuffer = new byte[117];
-
-            // Send the file
-            for (boolean fileEnded = false; !fileEnded; ) {
-                numBytes = bufferedFileInputStream.read(fromFileBuffer);
-                fileEnded = numBytes < 117;
-
-                toServer.writeInt(1);
-                toServer.writeInt(numBytes);
-                toServer.write(fromFileBuffer);
-                toServer.flush();
-            }
-
-            bufferedFileInputStream.close();
-            fileInputStream.close();
-
-            System.out.println("Closing connection...");
-
-        } catch (Exception e) {
+        }catch (Exception e){
             e.printStackTrace();
         }
-
-        long timeTaken = System.nanoTime() - timeStarted;
-        System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
     }
 
     public static byte[] toByteArray(DataInputStream dis) throws IOException {

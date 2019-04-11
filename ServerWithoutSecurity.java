@@ -1,3 +1,5 @@
+package ass2;
+
 import javax.crypto.Cipher;
 import java.io.*;
 import java.net.ServerSocket;
@@ -108,6 +110,22 @@ public class ServerWithoutSecurity {
 			}
 			ServerSide sprotocols=new ServerSide();
 //			byte[] newChallenge=sprotocols.createChallenge();
+
+			// receive message from client (whether AP passed or failed)
+            String APresult = readFromClient.readLine();
+            if (APresult.equals("Bye, you liar")){
+                // we stop, close all connections
+                fromClient.close();
+                toClient.close();
+                readFromClient.close();
+                connectionSocket.close();
+            }
+
+
+
+            // start file transfer
+
+
 
 
 
