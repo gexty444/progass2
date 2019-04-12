@@ -153,6 +153,9 @@ public class CP2Client {
             byte[] encryptedSessionKey = encryptCipher.doFinal(sessionKeyBytes);
 
             // send encrypted session key
+            toServer.write(encryptedSessionKey);
+            toServer.flush();
+            System.out.println("Sent Session Key to Server!");
 
 
             // send encrypted file name & file size
