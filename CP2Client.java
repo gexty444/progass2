@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -158,18 +159,34 @@ public class CP2Client {
             System.out.println("Sent Session Key to Server!");
 
 
-            // send encrypted file name & file size
+            // send encrypted file name
+            System.out.println("1. Sending filename");
+            toServer.writeInt(0);
+            toServer.writeInt(filename.getBytes().length);
+            byte [] encryptedFileName=encryptCipher.doFinal(filename.getBytes());
+            toServer.writeInt(encryptedFileName.length);
+            toServer.write(encryptedFileName);
+            toServer.flush();
+            System.out.println("Filename sent!");
 
-
-            // send encrypted file blocks
-
-
+            // send encrypted file
+            File file = new File(filepath);
+            byte[] fileBytes = new byte[ (int) file.length()];      // convert to byte array for encryption
+            byte[] encryptedFile = sessionCipher.doFinal(fileBytes);    // encrypt
+            toServer.write(encryptedFile);
+            toServer.flush();
+            System.out.println("Sent File to Server!");
 
 
             // record time taken
             long timeTaken = System.nanoTime() - timeStarted;
             System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 
+            // close all connections
+            toServer.close();
+            fromServer.close();
+            writeToServer.close();
+            clientSocket.close();
 
         } catch (Exception e) {
             e.printStackTrace();
