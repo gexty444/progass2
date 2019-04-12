@@ -1,4 +1,7 @@
+package ass2;
+
 import javax.crypto.Cipher;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,12 +16,12 @@ public class ClientSide {
     private String crt_path;
     private PublicKey serverKey;
     private X509Certificate CAcert;
-    private static byte[] nonce=new byte[32];
+    private static byte[] nonce = new byte[32];
 
 
-    public ClientSide(){
+    public ClientSide() {
         CAcert = null;
-        this.serverKey=null;
+        this.serverKey = null;
     }
 
     public X509Certificate get_Cert_object() {
@@ -40,16 +43,20 @@ public class ClientSide {
     }
 
     public PublicKey getServerKey() {
-        this.serverKey=CAcert.getPublicKey();
+        this.serverKey = CAcert.getPublicKey();
         return this.serverKey;
     }
 
     public void setCAcert(X509Certificate CAcert) {
         this.CAcert = CAcert;
     }
-    public void setServerKey(PublicKey pk) { this.serverKey=pk; }
-    public void setCrt_path(String path){
-        this.crt_path=path;
+
+    public void setServerKey(PublicKey pk) {
+        this.serverKey = pk;
+    }
+
+    public void setCrt_path(String path) {
+        this.crt_path = path;
     }
 
     /*
@@ -65,39 +72,42 @@ public class ClientSide {
                and sees if this value matches what the client sent
      */
 
-    public void createNonce(){
-        SecureRandom randombytes=new SecureRandom();
+    public void createNonce() {
+        SecureRandom randombytes = new SecureRandom();
         randombytes.nextBytes(nonce);
     }
-    public byte[] getNonce(){
+
+    public byte[] getNonce() {
         return nonce;
     }
 
-    public byte[] decryptNonce(byte[] nonce){
-        byte[] freshnonce=new byte[32];
+    public byte[] decryptNonce(byte[] nonce) {
+        byte[] freshnonce = new byte[32];
         try {
             Cipher todecrypt = Cipher.getInstance("RSA");
             todecrypt.init(Cipher.DECRYPT_MODE, serverKey);
 
-            freshnonce=todecrypt.doFinal(nonce);
-        }catch(Exception e){
+            freshnonce = todecrypt.doFinal(nonce);
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return freshnonce;
 
 
     }
-    public boolean checkNonce(byte[] serverNonce, byte[] clientNonce){
-        if(!Arrays.equals(serverNonce, clientNonce))
+
+    public boolean checkNonce(byte[] serverNonce, byte[] clientNonce) {
+        if (!Arrays.equals(serverNonce, clientNonce))
             return false;
-        else{
+        else {
             System.out.println("Nonce check passed!");
             return true;
         }
 
     }
-    public byte[] encryptFileBuffer(byte[] fileBuffer) throws Exception{
-        Cipher toEncrypt=Cipher.getInstance("RSA/ECB/PKCS1Padding");
+
+    public byte[] encryptFileBuffer(byte[] fileBuffer) throws Exception {
+        Cipher toEncrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         toEncrypt.init(Cipher.ENCRYPT_MODE, serverKey);
         return toEncrypt.doFinal(fileBuffer);
     }

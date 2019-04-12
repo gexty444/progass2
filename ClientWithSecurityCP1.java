@@ -1,4 +1,7 @@
+package ass2;
+
 import javax.crypto.Cipher;
+
 import java.io.*;
 import java.net.Socket;
 import java.security.PublicKey;
@@ -9,20 +12,23 @@ import java.security.cert.X509Certificate;
 //encrypt the file here before sending
 public class ClientWithSecurityCP1 {
 
+    private static String filename = "CSE Intro Handout 2019.pdf";
+    private static String filepath = "C:\\Users\\It'sMine\\Desktop\\SUTD\\Term 5\\50.005  Computer System Engineering\\CSE Intro Handout 2019.pdf";
+    private static String serverAddress = "localhost";
+    private static String CACSEcrtPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\cacse.crt";
+    private static int port = 4321;
+
     public static void main(String[] args) {
 
-        String filename = "05254189.pdf";
-        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\05254189.pdf";
         if (args.length > 0) filename = args[0];
 
-        String serverAddress = "localhost";
         if (args.length > 1) serverAddress = args[1];
 
-        int port = 4321;
         if (args.length > 2) port = Integer.parseInt(args[2]);
 
         int numBytes = 0;
 
+        // initialise required connections
         Socket clientSocket = null;
 
         DataOutputStream toServer = null;
@@ -30,7 +36,7 @@ public class ClientWithSecurityCP1 {
 
         FileInputStream fileInputStream = null;
         BufferedInputStream bufferedFileInputStream = null;
-        ClientSide protocols = new ClientSide();
+        ClientSide protocols = new ClientSide();        // ClientSide is a class with helper functions
 
         BufferedReader stringtoServer = null;
         PrintWriter writeToServer = null;
@@ -43,21 +49,19 @@ public class ClientWithSecurityCP1 {
             toServer = new DataOutputStream(clientSocket.getOutputStream());
             fromServer = new DataInputStream(clientSocket.getInputStream());
 
-            //receiving the encrypted message
-
             //generating and sending the nonce
             protocols.createNonce();
             byte[] generated_nonce = protocols.getNonce();
             toServer.write(generated_nonce);
             System.out.println("Nonce sent!");
 
-
-            //TODO: receive the nonce (use while loop to receive all the bytes as the file may be large)
+            // receive the nonce
             int sizeofnonce = fromServer.readInt();
             byte[] receivedNonce = new byte[sizeofnonce];
             fromServer.readFully(receivedNonce);
             System.out.println("Nonce received!");
-            //TODO: request servers signed certificate
+
+            // request server's signed certificate
             try {
                 writeToServer = new PrintWriter(clientSocket.getOutputStream(), true);
                 System.out.println("Sending request");
@@ -67,9 +71,9 @@ public class ClientWithSecurityCP1 {
                 e.printStackTrace();
             }
 
-
             System.out.println("request for certificate sent");
-            //TODO: receive signed certificate and validate
+
+            //receive signed certificate and validate
             int certLength = fromServer.readInt();
             System.out.println("Cert length " + certLength);
             byte[] receivedCert = new byte[certLength];
@@ -77,19 +81,16 @@ public class ClientWithSecurityCP1 {
             System.out.println("Certificate received");
 
             // Extract CA's public key from CACSE.crt
-//			InputStream is=new FileInputStream("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
-            protocols.setCrt_path("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
+            protocols.setCrt_path(CACSEcrtPath);
             X509Certificate cacert = protocols.get_Cert_object(); //get x509cert oject from cacse.crt
             PublicKey pbkey = cacert.getPublicKey();
             System.out.println("Extracted public key");
 
 
-            //transform byte to cert
+            // transform byte to cert
             InputStream ins = new ByteArrayInputStream(receivedCert);
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
             X509Certificate serverCert = (X509Certificate) certFactory.generateCertificate(ins);
-
-//            System.out.println(cert);
 
             //check validity and verify of Server's cert with CA's public key
             serverCert.checkValidity();
@@ -97,7 +98,7 @@ public class ClientWithSecurityCP1 {
             serverCert.verify(pbkey);
             System.out.println("Cert verified");
 
-            //TODO: Extract Server public key and get nonce and check nonce
+            // Extract Server public key and get nonce and check nonce
             PublicKey serverPublicKey = serverCert.getPublicKey();
             protocols.setCAcert(serverCert);
             protocols.setServerKey(serverPublicKey);
@@ -120,8 +121,6 @@ public class ClientWithSecurityCP1 {
                 clientSocket.close();
             }
 
-
-
             // Start file transfer
             System.out.println("Sending file...");
 
@@ -132,67 +131,75 @@ public class ClientWithSecurityCP1 {
             Cipher encryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             encryptCipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
 
-
-
+            // obtains bytes from a file
             fileInputStream = new FileInputStream(filepath);
             bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+
+            // send the file size over
             System.out.println("Sending file length");
-            int filelength=fileInputStream.available();
+            int filelength = fileInputStream.available();
             toServer.writeInt(filelength); //send the file size over
             toServer.flush();
 
-            // TODO: Send over file name encrypted with public key.
+            // Send over file name encrypted with public key.
             System.out.println("1. Sending filename");
             toServer.writeInt(0);
-            toServer.writeInt(filename.getBytes().length); //sending filename length
-            byte [] encryptedFileName=encryptCipher.doFinal(filename.getBytes());
-            toServer.writeInt(encryptedFileName.length); //sending encrypted file name length
-            toServer.write(encryptedFileName); //sending file name
+            toServer.writeInt(filename.getBytes().length);      //sending filename length
+            byte[] encryptedFileName = encryptCipher.doFinal(filename.getBytes());
+            toServer.writeInt(encryptedFileName.length);        //sending encrypted file name length
+            toServer.write(encryptedFileName);                  //sending encrypted file name
             toServer.flush();
             System.out.println("Filename sent!");
 
-            // TODO: Open the file
+            // Open the file
             System.out.println("2. Preparing File");
-            toServer.writeInt(filelength); //sending file length
+            toServer.writeInt(filelength);                      //sending file length
 
-                byte[] fromFileBuffer = new byte[117];
-                // Send the file
-                int count=0;
-                for (boolean fileEnded = false; !fileEnded; ) {
-                    System.out.println("Sending file chunk "+count);
-                    //reads specified number of bytes into the byte array
-                    numBytes = bufferedFileInputStream.read(fromFileBuffer);
-                    //TODO:Encrypt file buffer
-                    byte[] encryptedBuffer=protocols.encryptFileBuffer(fromFileBuffer);
-                    fileEnded = numBytes < 117;
+            byte[] fromFileBuffer = new byte[117];
 
-                    toServer.writeInt(1);
-                    //encrypted buffer length is not same as original length
-                    toServer.writeInt(numBytes);
-                    toServer.writeInt(encryptedBuffer.length);
-                    toServer.write(encryptedBuffer);
-                    toServer.flush();
-                    count++;
+            // Send the file
+            int count = 0;
+            for (boolean fileEnded = false; !fileEnded; ) {
+                System.out.println("Sending file chunk " + count);
 
-                }
+                //reads specified number of bytes into the byte array
+                numBytes = bufferedFileInputStream.read(fromFileBuffer);
+
+                // Encrypt file buffer
+                byte[] encryptedBuffer = protocols.encryptFileBuffer(fromFileBuffer);
+                fileEnded = numBytes < 117;
+
+                toServer.writeInt(1);
+                //encrypted buffer length is not same as original length
+                toServer.writeInt(numBytes);
+                toServer.writeInt(encryptedBuffer.length);
+                toServer.write(encryptedBuffer);
+                toServer.flush();
+                count++;
+
+            }
             System.out.println("File Sent");
-                while(fromServer.readInt()!=4){
-                }
+            while (fromServer.readInt() != 4) {
+            }
+
+            // record time taken
+            long timeTaken = System.nanoTime() - timeStarted;
+            System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
+
             bufferedFileInputStream.close();
             fileInputStream.close();
 
             System.out.println("Closing connection...");
 
+            // close all remaining connections
+            toServer.close();
+            fromServer.close();
+            writeToServer.close();
+            clientSocket.close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-//
-//        long timeTaken = System.nanoTime() - timeStarted;
-//        System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
-
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
     }
 
     public static byte[] toByteArray(DataInputStream dis) throws IOException {

@@ -1,28 +1,36 @@
+package ass2;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
 
 public class CP2Server {
+
+    private static int port = 4321;
+    private static String privateKeyPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\example.org.der";
+    private static String serverCertPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\example.org.crt";
+
+
     public static void main(String[] args) {
 
-        int port = 4321;
         if (args.length > 0) port = Integer.parseInt(args[0]);
 
+        // initialise required connections
         ServerSocket welcomeSocket = null;
         Socket connectionSocket = null;
         DataOutputStream toClient = null;
         DataInputStream fromClient = null;
 
+        BufferedReader bread = null;
         FileOutputStream fileOutputStream = null;
         BufferedOutputStream bufferedFileOutputStream = null;
-        ServerSide serverProtocols = new ServerSide();
+        ServerSide serverProtocols = new ServerSide();              // ServerSide is a class with helper functions
 
-
-        BufferedReader bread = null;
 
         try {
             welcomeSocket = new ServerSocket(port);
@@ -31,19 +39,17 @@ public class CP2Server {
             toClient = new DataOutputStream(connectionSocket.getOutputStream());
             BufferedReader readFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 
-            //TODO:Encrypt message with private key
 
-            //get private key
-            PrivateKey privateKey = serverProtocols.getPrivateKey();
+            // get private key
+            PrivateKey privateKey = serverProtocols.getPrivateKey(privateKeyPath);
             serverProtocols.setServerPrivateKey(privateKey);
 
+            // get the nonce from client
             byte[] buffer = new byte[32];
-            //get our nonce from client
             fromClient.readFully(buffer);
             System.out.println("Got nonce from client");
 
-
-            //TODO:encrypt nonce
+            // encrypt nonce with server's private key and send back
             Cipher encryptMessageToClient = Cipher.getInstance("RSA");
             encryptMessageToClient.init(Cipher.ENCRYPT_MODE, privateKey);
             byte[] encryptednonce = encryptMessageToClient.doFinal(buffer);
@@ -54,12 +60,13 @@ public class CP2Server {
             System.out.println("Nonce transferred");
             toClient.flush();
 
+            // client requests for certificate
             String certreq = readFromClient.readLine();
 
-            //TODO:send certificate
+            // send certificate to client
             if (certreq.equals("Give me your certificate!")) {
                 System.out.println("Preparing cert");
-                File certificate = new File("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.crt");
+                File certificate = new File(serverCertPath);
                 byte[] certByte = new byte[(int) certificate.length()];
                 try {
                     FileInputStream fis = new FileInputStream(certificate);
@@ -75,8 +82,6 @@ public class CP2Server {
                 toClient.flush();
                 System.out.println("Cert sent");
             }
-            ServerSide sprotocols = new ServerSide();
-//			byte[] newChallenge=sprotocols.createChallenge();
 
             // receive message from client (whether AP passed or failed)
             String APresult = readFromClient.readLine();
@@ -88,45 +93,46 @@ public class CP2Server {
                 connectionSocket.close();
             }
 
-            //Get session key and decrypt
+            // Get encrypted session key and decrypt it
             int length = fromClient.readInt();
             byte[] encryptedSessionKey = new byte[length];
-            fromClient.readFully(encryptedSessionKey, 0, length);//read the session key
+            fromClient.readFully(encryptedSessionKey, 0, length);       //read the session key
             System.out.println("Received Session Key");
             Cipher decryptKey = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            decryptKey.init(Cipher.DECRYPT_MODE, serverProtocols.getPrivateKey());
+            decryptKey.init(Cipher.DECRYPT_MODE, serverProtocols.getPrivateKey(privateKeyPath));
             byte[] byteSessionKey = decryptKey.doFinal(encryptedSessionKey);
             SecretKey sessionKey = new SecretKeySpec(byteSessionKey, "AES");
 
-            int count=0;
+            int count = 0;
+
             //Receive file from client
             while (!connectionSocket.isClosed()) {
 
                 Cipher decryptFileName = Cipher.getInstance("AES/ECB/PKCS5Padding");
                 decryptFileName.init(Cipher.DECRYPT_MODE, sessionKey);
                 int packetType = fromClient.readInt();
-                if (packetType == 0) {
+                if (packetType == 0) {          // 0 -> file name
                     System.out.println("Receiving file...");
 
                     System.out.println("1. Receiving encrypted filename");
-                    int numBytes = fromClient.readInt();//numbytes for decrypted filename is different from encrypted
-                    int encryptedFileHeaderLength = fromClient.readInt(); //get length
+                    int numBytes = fromClient.readInt();                        //numbytes for decrypted filename is different from encrypted
+                    int encryptedFileHeaderLength = fromClient.readInt();       //get length
                     byte[] encryptedFilename = new byte[encryptedFileHeaderLength];
-                    fromClient.readFully(encryptedFilename, 0, encryptedFileHeaderLength); //get encrypted file name
+                    fromClient.readFully(encryptedFilename, 0, encryptedFileHeaderLength);  //get encrypted file name
                     System.out.println("Received filename!");
 
-                    //Decrypt file header
-
+                    // Decrypt file header
                     byte[] decryptedFileName = decryptFileName.doFinal(encryptedFilename);
-                    fileOutputStream = new FileOutputStream("C:\\Users\\Me\\Documents\\" + new String(decryptedFileName, 0, numBytes));
+//                    fileOutputStream = new FileOutputStream("C:\\Users\\Me\\Documents\\" + new String(decryptedFileName, 0, numBytes));
+                    fileOutputStream = new FileOutputStream(new String(decryptedFileName, 0, numBytes));
                     bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
                     System.out.println("File header Decrypted");
 
 
-                } else if (packetType == 1) {
+                } else if (packetType == 1) {       // 1 -> file size
                     System.out.println("2. Reading client output");
                     long filelength = fromClient.readLong();
-                    long encryptedFileLength=fromClient.readLong();
+                    long encryptedFileLength = fromClient.readLong();
                     byte[] encryptedFile = new byte[(int) encryptedFileLength];
                     fromClient.readFully(encryptedFile, 0, (int) encryptedFileLength);
                     System.out.println("Received client output");
@@ -134,9 +140,9 @@ public class CP2Server {
                     byte[] decryptedBlock = decryptFileName.doFinal(encryptedFile);
                     System.out.println("Writing to file");
                     bufferedFileOutputStream.write(decryptedBlock, 0, (int) filelength);
-                    count=1;
+                    count = 1;
                 }
-                if(count==1){
+                if (count == 1) {
                     System.out.println("Closing connection...");
 
                     if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
@@ -148,9 +154,9 @@ public class CP2Server {
 
 
             }
-            } catch(Exception e){
-                e.printStackTrace();
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
 
 }

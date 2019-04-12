@@ -1,3 +1,5 @@
+package ass2;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -20,20 +22,24 @@ import javax.crypto.SecretKey;
 
 public class CP2Client {
 
+    private static String filename = "w8_network_whiteboard_notes.pdf";
+    private static String filepath = "C:\\Users\\It'sMine\\Desktop\\SUTD\\Term 5\\50.005  Computer System Engineering\\w8_network_whiteboard_notes.pdf";
+    private static String CACSEcrtPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\cacse.crt";
+    private static String serverAddress = "localhost";
+    private static int port = 4321;
+
+
     public static void main(String[] args) {
 
-        String filename = "05254189.pdf";
-        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\05254189.pdf";
         if (args.length > 0) filename = args[0];
 
-        String serverAddress = "localhost";
         if (args.length > 1) serverAddress = args[1];
 
-        int port = 4321;
         if (args.length > 2) port = Integer.parseInt(args[2]);
 
         int numBytes = 0;
 
+        // initialise required connections
         Socket clientSocket = null;
 
         DataOutputStream toServer = null;
@@ -41,7 +47,7 @@ public class CP2Client {
 
         FileInputStream fileInputStream = null;
         BufferedInputStream bufferedFileInputStream = null;
-        ClientSide protocols = new ClientSide();
+        ClientSide protocols = new ClientSide();            // ClientSide is a class with helper functions
 
         BufferedReader stringtoServer = null;
         PrintWriter writeToServer = null;
@@ -55,13 +61,11 @@ public class CP2Client {
             toServer = new DataOutputStream(clientSocket.getOutputStream());
             fromServer = new DataInputStream(clientSocket.getInputStream());
 
-
             //generating and sending the nonce
             protocols.createNonce();
             byte[] generated_nonce = protocols.getNonce();
             toServer.write(generated_nonce);
             System.out.println("Nonce sent!");
-
 
             //receive the nonce
             int sizeofnonce = fromServer.readInt();
@@ -80,33 +84,33 @@ public class CP2Client {
             }
 
 
-            System.out.println("request for certificate sent");
+            System.out.println("Request for certificate sent");
 
             //receive signed certificate and validate
             int certLength = fromServer.readInt();
-            System.out.println("Cert length " + certLength);
+            System.out.println("Certificate length :" + certLength);
             byte[] receivedCert = new byte[certLength];
             fromServer.readFully(receivedCert);
             System.out.println("Certificate received");
 
             // Extract CA's public key from CACSE.crt
-            protocols.setCrt_path("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\cacse.crt");
-            X509Certificate cacert = protocols.get_Cert_object(); //get x509cert oject from cacse.crt
+            protocols.setCrt_path(CACSEcrtPath);
+            X509Certificate cacert = protocols.get_Cert_object();           //get x509cert oject from cacse.crt
             PublicKey pbkey = cacert.getPublicKey();
             System.out.println("Extracted public key");
 
-            //transform byte to cert
+            // transform byte to cert
             InputStream ins = new ByteArrayInputStream(receivedCert);
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
             X509Certificate serverCert = (X509Certificate) certFactory.generateCertificate(ins);
 
             //check validity and verify of Server's cert with CA's public key
             serverCert.checkValidity();
-            System.out.println("Cert valid");
+            System.out.println("Certificate is valid");
             serverCert.verify(pbkey);
-            System.out.println("Cert verified");
+            System.out.println("Certificate is verified");
 
-            //Extract Server's public key and get nonce and check nonce
+            // Extract Server's public key and get nonce and check nonce
             PublicKey serverPublicKey = serverCert.getPublicKey();
             protocols.setCAcert(serverCert);
             protocols.setServerKey(serverPublicKey);
@@ -144,9 +148,6 @@ public class CP2Client {
             keyGen.init(128);
             SecretKey sessionKey = keyGen.generateKey();
 
-            // initialise cipher using session key for file encryption
-
-
             // encrypt session key with server's public key
             byte[] sessionKeyBytes = sessionKey.getEncoded();
             byte[] encryptedSessionKey = encryptCipher.doFinal(sessionKeyBytes);
@@ -157,6 +158,7 @@ public class CP2Client {
             toServer.flush();
             System.out.println("Sent Session Key to Server!");
 
+            // initialise cipher using session key for file encryption
             Cipher sessionCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             sessionCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
 
@@ -164,23 +166,22 @@ public class CP2Client {
             System.out.println("1. Sending filename");
             toServer.writeInt(0);
             toServer.writeInt(filename.getBytes().length);
-            byte [] encryptedFileName=sessionCipher.doFinal(filename.getBytes());
+            byte[] encryptedFileName = sessionCipher.doFinal(filename.getBytes());
             toServer.writeInt(encryptedFileName.length);
             toServer.write(encryptedFileName);
             toServer.flush();
             System.out.println("Filename sent!");
 
             // send encrypted file
-
             File file = new File(filepath);
-            byte[] fileBytes = new byte[ (int) file.length()];      // convert to byte array for encryption
-            BufferedInputStream bufins=new BufferedInputStream(new FileInputStream(file));
-            bufins.read(fileBytes, 0, (int)file.length());
+            byte[] fileBytes = new byte[(int) file.length()];      // convert to byte array for encryption
+            BufferedInputStream bufins = new BufferedInputStream(new FileInputStream(file));
+            bufins.read(fileBytes, 0, (int) file.length());
             byte[] encryptedFile = sessionCipher.doFinal(fileBytes);    // encrypt
 
             toServer.writeInt(1);
             toServer.writeLong(file.length());
-            toServer.writeLong(encryptedFile.length); //send over file size
+            toServer.writeLong(encryptedFile.length);              //send over file size
             toServer.write(encryptedFile);
             toServer.flush();
             System.out.println("Sent File to Server!");
