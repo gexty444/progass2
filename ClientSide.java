@@ -1,5 +1,3 @@
-package ass2;
-
 import javax.crypto.Cipher;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -13,15 +11,14 @@ import java.util.Arrays;
 
 public class ClientSide {
     private String crt_path;
-    private PublicKey server;
-    private PublicKey CA;
+    private PublicKey serverKey;
     private X509Certificate CAcert;
     private static byte[] nonce=new byte[32];
 
 
     public ClientSide(){
         CAcert = null;
-        this.server=null;
+        this.serverKey=null;
     }
 
     public X509Certificate get_Cert_object() {
@@ -43,17 +40,14 @@ public class ClientSide {
     }
 
     public PublicKey getServerKey() {
-        this.server=CAcert.getPublicKey();
-        return this.server;
+        this.serverKey=CAcert.getPublicKey();
+        return this.serverKey;
     }
 
     public void setCAcert(X509Certificate CAcert) {
         this.CAcert = CAcert;
     }
-    public void setServerKey(PublicKey pk) {
-
-        this.server=pk;
-    }
+    public void setServerKey(PublicKey pk) { this.serverKey=pk; }
     public void setCrt_path(String path){
         this.crt_path=path;
     }
@@ -78,11 +72,12 @@ public class ClientSide {
     public byte[] getNonce(){
         return nonce;
     }
+
     public byte[] decryptNonce(byte[] nonce){
         byte[] freshnonce=new byte[32];
         try {
             Cipher todecrypt = Cipher.getInstance("RSA");
-            todecrypt.init(Cipher.DECRYPT_MODE, server);
+            todecrypt.init(Cipher.DECRYPT_MODE, serverKey);
 
             freshnonce=todecrypt.doFinal(nonce);
         }catch(Exception e){
@@ -100,6 +95,11 @@ public class ClientSide {
             return true;
         }
 
+    }
+    public byte[] encryptFileBuffer(byte[] fileBuffer) throws Exception{
+        Cipher toEncrypt=Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        toEncrypt.init(Cipher.ENCRYPT_MODE, serverKey);
+        return toEncrypt.doFinal(fileBuffer);
     }
 
 }

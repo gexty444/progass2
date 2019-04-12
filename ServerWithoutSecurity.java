@@ -1,5 +1,3 @@
-package ass2;
-
 import javax.crypto.Cipher;
 import java.io.*;
 import java.net.ServerSocket;
@@ -50,6 +48,7 @@ public class ServerWithoutSecurity {
 
 		FileOutputStream fileOutputStream = null;
 		BufferedOutputStream bufferedFileOutputStream = null;
+		ServerSide serverProtocols=new ServerSide();
 
 
 		BufferedReader bread=null;
@@ -61,22 +60,19 @@ public class ServerWithoutSecurity {
 			toClient = new DataOutputStream(connectionSocket.getOutputStream());
 			BufferedReader readFromClient=new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 
-			//Encrypt message with private key
+			//TODO:Encrypt message with private key
 
-			//get private key from .der file
-			Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.der");
-			byte[] privKeyByteArray = Files.readAllBytes(path);
-			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyByteArray);
-			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-			PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-//			System.out.println(myPrivKey);
+			//get private key
+			PrivateKey privateKey = serverProtocols.getPrivateKey();
+			serverProtocols.setServerPrivateKey(privateKey);
+
 			byte[] buffer =new byte[32];
 			//get our nonce from client
 			fromClient.readFully(buffer);
 			System.out.println("Got nonce from client");
 
 
-			//encrypt nonce
+			//TODO:encrypt nonce
 			Cipher encryptMessageToClient=Cipher.getInstance("RSA");
 			encryptMessageToClient.init(Cipher.ENCRYPT_MODE, privateKey);
 			byte[] encryptednonce=encryptMessageToClient.doFinal(buffer);
@@ -139,40 +135,49 @@ public class ServerWithoutSecurity {
 
 
 			//Secure handshake should be done here
-			Scanner s=new Scanner(fromClient);
-			String output = s.hasNext() ? s.next() : "";
-			System.out.println(output);
+//			Scanner s=new Scanner(fromClient);
+//			String output = s.hasNext() ? s.next() : "";
+//			System.out.println(output);
 
 
 
 
-			while (!connectionSocket.isClosed()) {
+			while (!connectionSocket.isClosed()) { //cannot exit before finish writing
 
 				int packetType = fromClient.readInt();
 
 				// If the packet is for transferring the filename
 				if (packetType == 0) {
 
+					//TODO: Receive filename and decrypt with server's private key
 					System.out.println("Receiving file...");
 
-					int numBytes = fromClient.readInt();
-					byte [] filename = new byte[numBytes];
+					System.out.println("1. Receiving encrypted filename");
+					int numBytes = fromClient.readInt();//numbytes for decrypted filename is different from encrypted
+                    int encryptedFileHeaderLength=fromClient.readInt();
+					byte [] encryptedFilename = new byte[encryptedFileHeaderLength];
 					// Must use read fully!
 					// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-					fromClient.readFully(filename, 0, numBytes);
-
-					fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
+					fromClient.readFully(encryptedFilename, 0, encryptedFileHeaderLength);
+                    System.out.println("Received filename!");
+					byte[] decryptedFileName= serverProtocols.decryptFileName(encryptedFilename);
+					fileOutputStream = new FileOutputStream("C:\\Users\\Me\\Documents\\"+new String(decryptedFileName, 0, numBytes));
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+
 
 				// If the packet is for transferring a chunk of the file
 				} else if (packetType == 1) {
-
+                    System.out.println("2. Reading client output");
 					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.readFully(block, 0, numBytes);
-
+					int encryptedLength = fromClient.readInt();//get the encrypted buffer length from client
+					byte [] encryptedBlock = new byte[encryptedLength];
+					fromClient.readFully(encryptedBlock, 0, encryptedLength);
+                    System.out.println("Received client output");
+                    System.out.println("Decrypting data chunks...");
+					byte[] decryptedBlock = serverProtocols.decryptFileChunk(encryptedBlock);
+                    System.out.println("Writing to file");
 					if (numBytes > 0)
-						bufferedFileOutputStream.write(block, 0, numBytes);
+						bufferedFileOutputStream.write(decryptedBlock, 0, numBytes);
 
 					if (numBytes < 117) {
 						System.out.println("Closing connection...");

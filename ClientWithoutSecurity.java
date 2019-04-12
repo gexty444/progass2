@@ -1,5 +1,3 @@
-package ass2;
-
 import javax.crypto.Cipher;
 import java.io.*;
 import java.net.Socket;
@@ -13,11 +11,12 @@ public class ClientWithoutSecurity {
 
     public static void main(String[] args) {
 
-        String filename = "rr.txt";
+        String filename = "testfile.txt";
+        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\gapz-bootkit-whitepaper.pdf";
         if (args.length > 0) filename = args[0];
 
         String serverAddress = "localhost";
-        if (args.length > 1) filename = args[1];
+        if (args.length > 1) serverAddress = args[1];
 
         int port = 4321;
         if (args.length > 2) port = Integer.parseInt(args[2]);
@@ -112,7 +111,7 @@ public class ClientWithoutSecurity {
                 writeToServer.flush();
             } else {       // if nonce check failed, send bye message and close all connections
                 System.out.println("Server check failed (AP failed)");
-                writeToServer.println("Bye, you liar");
+                writeToServer.println("Bye, you liar :<");
                 writeToServer.flush();
                 // close all connections
                 toServer.close();
@@ -136,59 +135,56 @@ public class ClientWithoutSecurity {
 
 
 
+            // TODO: Send over file name encrypted with public key.
+            System.out.println("1. Sending filename");
+            toServer.writeInt(0);
+            toServer.writeInt(filename.getBytes().length);
+            byte [] encryptedFileName=encryptCipher.doFinal(filename.getBytes());
+            toServer.writeInt(encryptedFileName.length);
+            toServer.write(encryptedFileName);
+            toServer.flush();
+            System.out.println("Filename sent!");
+
+            // TODO: Open the file
+            System.out.println("2. Preparing File");
+            fileInputStream = new FileInputStream(filepath);
+            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 
 
+                byte[] fromFileBuffer = new byte[117];                int count=0;
+                // Send the file
+                for (boolean fileEnded = false; !fileEnded; ) {
+                    System.out.println("Sending file chunk "+count);
+                    //reads specified number of bytes into the byte array
+                    numBytes = bufferedFileInputStream.read(fromFileBuffer);
+                    //TODO:Encrypt file buffer
+                    byte[] encryptedBuffer=protocols.encryptFileBuffer(fromFileBuffer);
+                    fileEnded = numBytes < 117;
 
+                    toServer.writeInt(1);
+                    //encrypted buffer length is not same as original length
+                    toServer.writeInt(numBytes);
+                    toServer.writeInt(encryptedBuffer.length);
+                    toServer.write(encryptedBuffer);
+                    toServer.flush();
+                    count++;
+                }
+            System.out.println("File Sent");
+            bufferedFileInputStream.close();
+            fileInputStream.close();
 
+            System.out.println("Closing connection...");
 
-            //TODO: send confirmation of server ID
-            //TODO: receive newly sent nonce from server
-            //TODO: request servers signed certificate
-            //TODO: encrypt nonce with private key
-            //TODO: give server public key
-            //TODO: send public key
-            //TODO: receive confirmation message from server
-
-
-//            System.out.println("Sending file...");
-//            // Send the filename
-//            toServer.writeInt(0);
-//            toServer.writeInt(filename.getBytes().length);
-//            toServer.write(filename.getBytes());
-//            //toServer.flush();
-//
-//            // Open the file
-//            fileInputStream = new FileInputStream(filename);
-//            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-//
-//            byte[] fromFileBuffer = new byte[117];
-//
-//            // Send the file
-//            for (boolean fileEnded = false; !fileEnded; ) {
-//                numBytes = bufferedFileInputStream.read(fromFileBuffer);
-//                fileEnded = numBytes < 117;
-//
-//                toServer.writeInt(1);
-//                toServer.writeInt(numBytes);
-//                toServer.write(fromFileBuffer);
-//                toServer.flush();
-//            }
-//
-//            bufferedFileInputStream.close();
-//            fileInputStream.close();
-//
-//            System.out.println("Closing connection...");
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 //
 //        long timeTaken = System.nanoTime() - timeStarted;
 //        System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
     }
 
     public static byte[] toByteArray(DataInputStream dis) throws IOException {

@@ -1,3 +1,4 @@
+import javax.crypto.Cipher;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,19 +10,35 @@ import java.security.spec.PKCS8EncodedKeySpec;
 
 public class ServerSide {
 
-
+    private PrivateKey serverPrivateKey=null;
     private static byte[] challenge=new byte[32];
 
-    public PrivateKey getPrivateKey() throws IOException {
-        byte[] privateKey= Files.readAllBytes(Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.key"));
-        PrivateKey retVal=null; //LOL
-        return retVal;
+    public PrivateKey getPrivateKey() throws Exception {
+        Path path = Paths.get("C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\example.org.der");
+        byte[] privKeyByteArray = Files.readAllBytes(path);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyByteArray);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+        return privateKey;
+    }
+    public void setServerPrivateKey(PrivateKey pvk){
+        this.serverPrivateKey=pvk;
+    }
+    public PrivateKey getServerPrivateKey(){
+        return this.serverPrivateKey;
     }
 
-    public byte[] createChallenge(){
-        SecureRandom newchallenge=new SecureRandom();
-        newchallenge.nextBytes(challenge);
-        return challenge;
+    public byte[] decryptFileName(byte[] encryptedFileName) throws Exception{
+        Cipher toDecrypt=Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        toDecrypt.init(Cipher.DECRYPT_MODE, getPrivateKey());
+        byte[] decryptedFileName=toDecrypt.doFinal(encryptedFileName);
+        return decryptedFileName;
+    }
+
+    public byte[] decryptFileChunk(byte[] fileBuffer) throws Exception{
+        Cipher decryptBuffer=Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        decryptBuffer.init(Cipher.DECRYPT_MODE, getServerPrivateKey());
+        return decryptBuffer.doFinal(fileBuffer);
     }
 
 
