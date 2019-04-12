@@ -98,9 +98,12 @@ public class CP2Server {
             byte[] byteSessionKey = decryptKey.doFinal(encryptedSessionKey);
             SecretKey sessionKey = new SecretKeySpec(byteSessionKey, "AES");
 
-
+            int count=0;
             //Receive file from client
             while (!connectionSocket.isClosed()) {
+
+                Cipher decryptFileName = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                decryptFileName.init(Cipher.DECRYPT_MODE, sessionKey);
                 int packetType = fromClient.readInt();
                 if (packetType == 0) {
                     System.out.println("Receiving file...");
@@ -113,8 +116,7 @@ public class CP2Server {
                     System.out.println("Received filename!");
 
                     //Decrypt file header
-                    Cipher decryptFileName = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                    decryptFileName.init(Cipher.DECRYPT_MODE, sessionKey);
+
                     byte[] decryptedFileName = decryptFileName.doFinal(encryptedFilename);
                     fileOutputStream = new FileOutputStream("C:\\Users\\Me\\Documents\\" + new String(decryptedFileName, 0, numBytes));
                     bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
@@ -124,17 +126,27 @@ public class CP2Server {
                 } else if (packetType == 1) {
                     System.out.println("2. Reading client output");
                     long filelength = fromClient.readLong();
-                    byte[] encryptedFile = new byte[(int) filelength];
-                    fromClient.readFully(encryptedFile, 0, (int) filelength);
+                    long encryptedFileLength=fromClient.readLong();
+                    byte[] encryptedFile = new byte[(int) encryptedFileLength];
+                    fromClient.readFully(encryptedFile, 0, (int) encryptedFileLength);
                     System.out.println("Received client output");
                     System.out.println("Decrypting file...");
-                    Cipher decryptFileName = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                    decryptFileName.init(Cipher.DECRYPT_MODE, sessionKey);
-
                     byte[] decryptedBlock = decryptFileName.doFinal(encryptedFile);
                     System.out.println("Writing to file");
                     bufferedFileOutputStream.write(decryptedBlock, 0, (int) filelength);
+                    count=1;
                 }
+                if(count==1){
+                    System.out.println("Closing connection...");
+
+                    if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
+                    if (bufferedFileOutputStream != null) fileOutputStream.close();
+                    fromClient.close();
+                    toClient.close();
+                    connectionSocket.close();
+                }
+
+
             }
             } catch(Exception e){
                 e.printStackTrace();

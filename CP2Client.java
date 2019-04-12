@@ -22,8 +22,8 @@ public class CP2Client {
 
     public static void main(String[] args) {
 
-        String filename = "testfile.txt";
-        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\testfile.txt";
+        String filename = "05254189.pdf";
+        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\05254189.pdf";
         if (args.length > 0) filename = args[0];
 
         String serverAddress = "localhost";
@@ -145,8 +145,7 @@ public class CP2Client {
             SecretKey sessionKey = keyGen.generateKey();
 
             // initialise cipher using session key for file encryption
-            Cipher sessionCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            sessionCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
+
 
             // encrypt session key with server's public key
             byte[] sessionKeyBytes = sessionKey.getEncoded();
@@ -158,6 +157,8 @@ public class CP2Client {
             toServer.flush();
             System.out.println("Sent Session Key to Server!");
 
+            Cipher sessionCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            sessionCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
 
             // send encrypted file name
             System.out.println("1. Sending filename");
@@ -175,10 +176,11 @@ public class CP2Client {
             byte[] fileBytes = new byte[ (int) file.length()];      // convert to byte array for encryption
             BufferedInputStream bufins=new BufferedInputStream(new FileInputStream(file));
             bufins.read(fileBytes, 0, (int)file.length());
-
             byte[] encryptedFile = sessionCipher.doFinal(fileBytes);    // encrypt
+
             toServer.writeInt(1);
-            toServer.writeLong(fileBytes.length); //send over file size
+            toServer.writeLong(file.length());
+            toServer.writeLong(encryptedFile.length); //send over file size
             toServer.write(encryptedFile);
             toServer.flush();
             System.out.println("Sent File to Server!");
