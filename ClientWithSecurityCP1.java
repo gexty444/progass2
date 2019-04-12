@@ -7,12 +7,12 @@ import java.security.cert.X509Certificate;
 
 
 //encrypt the file here before sending
-public class ClientWithoutSecurity {
+public class ClientWithSecurityCP1 {
 
     public static void main(String[] args) {
 
-        String filename = "testfile.txt";
-        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\gapz-bootkit-whitepaper.pdf";
+        String filename = "05254189.pdf";
+        String filepath = "C:\\Users\\Me\\IdeaProjects\\progassig2\\src\\05254189.pdf";
         if (args.length > 0) filename = args[0];
 
         String serverAddress = "localhost";
@@ -134,25 +134,30 @@ public class ClientWithoutSecurity {
 
 
 
+            fileInputStream = new FileInputStream(filepath);
+            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+            System.out.println("Sending file length");
+            int filelength=fileInputStream.available();
+            toServer.writeInt(filelength); //send the file size over
+            toServer.flush();
 
             // TODO: Send over file name encrypted with public key.
             System.out.println("1. Sending filename");
             toServer.writeInt(0);
-            toServer.writeInt(filename.getBytes().length);
+            toServer.writeInt(filename.getBytes().length); //sending filename length
             byte [] encryptedFileName=encryptCipher.doFinal(filename.getBytes());
-            toServer.writeInt(encryptedFileName.length);
-            toServer.write(encryptedFileName);
+            toServer.writeInt(encryptedFileName.length); //sending encrypted file name length
+            toServer.write(encryptedFileName); //sending file name
             toServer.flush();
             System.out.println("Filename sent!");
 
             // TODO: Open the file
             System.out.println("2. Preparing File");
-            fileInputStream = new FileInputStream(filepath);
-            bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+            toServer.writeInt(filelength); //sending file length
 
-
-                byte[] fromFileBuffer = new byte[117];                int count=0;
+                byte[] fromFileBuffer = new byte[117];
                 // Send the file
+                int count=0;
                 for (boolean fileEnded = false; !fileEnded; ) {
                     System.out.println("Sending file chunk "+count);
                     //reads specified number of bytes into the byte array
@@ -168,8 +173,11 @@ public class ClientWithoutSecurity {
                     toServer.write(encryptedBuffer);
                     toServer.flush();
                     count++;
+
                 }
             System.out.println("File Sent");
+                while(fromServer.readInt()!=4){
+                }
             bufferedFileInputStream.close();
             fileInputStream.close();
 

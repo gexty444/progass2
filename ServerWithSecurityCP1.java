@@ -12,7 +12,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Scanner;
 
 //SecStore, leave file as a stream of bytes
-public class ServerWithoutSecurity {
+public class ServerWithSecurityCP1 {
 	//When client has something to pass, it will connect to the server, handshake and perform upload
 	//must handle arbitrary files
 	//Use tcp sockets for connecting
@@ -141,8 +141,10 @@ public class ServerWithoutSecurity {
 
 
 
-
-			while (!connectionSocket.isClosed()) { //cannot exit before finish writing
+            int fileSize=fromClient.readInt();
+            int checksize=0;
+            int datacounter=0;
+			while (checksize<fileSize) { //cannot exit before finish writing
 
 				int packetType = fromClient.readInt();
 
@@ -158,11 +160,12 @@ public class ServerWithoutSecurity {
 					byte [] encryptedFilename = new byte[encryptedFileHeaderLength];
 					// Must use read fully!
 					// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-					fromClient.readFully(encryptedFilename, 0, encryptedFileHeaderLength);
+					fromClient.readFully(encryptedFilename, 0, encryptedFileHeaderLength); //get encrypted file name
                     System.out.println("Received filename!");
 					byte[] decryptedFileName= serverProtocols.decryptFileName(encryptedFilename);
 					fileOutputStream = new FileOutputStream("C:\\Users\\Me\\Documents\\"+new String(decryptedFileName, 0, numBytes));
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+
 
 
 				// If the packet is for transferring a chunk of the file
@@ -170,16 +173,25 @@ public class ServerWithoutSecurity {
                     System.out.println("2. Reading client output");
 					int numBytes = fromClient.readInt();
 					int encryptedLength = fromClient.readInt();//get the encrypted buffer length from client
+                    /*
+                    Need to store all the encrypted bytes into a buffer and slowly decrypt the chunks one by one
+                     */
 					byte [] encryptedBlock = new byte[encryptedLength];
 					fromClient.readFully(encryptedBlock, 0, encryptedLength);
                     System.out.println("Received client output");
                     System.out.println("Decrypting data chunks...");
 					byte[] decryptedBlock = serverProtocols.decryptFileChunk(encryptedBlock);
                     System.out.println("Writing to file");
-					if (numBytes > 0)
-						bufferedFileOutputStream.write(decryptedBlock, 0, numBytes);
+					if (numBytes > 0) {
+                        bufferedFileOutputStream.write(decryptedBlock, 0, numBytes);
+                        checksize+=numBytes;
+                        datacounter++;
+                        System.out.println("Writing chunk: "+datacounter);
+                    }
 
 					if (numBytes < 117) {
+					    toClient.writeInt(4);
+					    toClient.flush();
 						System.out.println("Closing connection...");
 
 						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
