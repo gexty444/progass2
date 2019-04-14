@@ -1,5 +1,22 @@
-Running the Server (both CP1 and CP2):
-Change the static variables privateKeyPath and serverCertPath to the absolute paths of your private key file and cert file accordingly. A .der file is used for the private key to convert it to a PrivateKey type.
+Team Members:
+Ashlyn Goh Er Xuan 	1002840 Cl02
+Wong Chi Seng		1002853 Cl02
 
-Running the Client:
-Change the filepath and filename variables to the absolute filepath of the file you want to transfer and the filename of the file respectively. Change the variable CACSEcrtpath to the absolute path of the CA's cert.
+## Instructions to Run
+### Prerequisite
+Java is required to run the program.
+
+### Running the Program
+Before running the programs, you need to make the following changes to the static variables. They can be found at the top of each program. 
+
+#### Running the Server (both CP-1 and CP-2):
+- Change the static variables `privateKeyPath` and `serverCertPath` to the absolute paths of your private key file (.der file) and server certificate file (.crt file) accordingly. For our project, the private key file is named `example.org.der` while the server certificate file is named `example.org.crt`. 
+
+#### Running the Client (both CP-1 and CP-2):
+- Change the static variables `filename` and `filepath` to the absolute file name and file path of the file you wish to transfer respectively.
+- Change the static variable `CACSEcrtpath` to the absolute path of the CA’s certificate (in our project, it is named as `cacse.crt`)
+- Lastly, change the static variable `serverAddress` to the IP address of the computer running the server program (use `“localhost”` if you are running both on the same machine) 
+
+For both protocols, run the server program before running the client program. Upon successful file transfer, the file will be transferred to the server and can be found at the same directory. 
+
+
