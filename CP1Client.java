@@ -10,11 +10,11 @@ import java.security.cert.X509Certificate;
 
 
 //encrypt the file here before sending
-public class ClientWithSecurityCP1 {
+public class CP1Client {
 
-    private static String filename = "CSE Intro Handout 2019.pdf";
-    private static String filepath = "C:\\Users\\It'sMine\\Desktop\\SUTD\\Term 5\\50.005  Computer System Engineering\\CSE Intro Handout 2019.pdf";
-    private static String serverAddress = "localhost";
+    private static String filename = "1484kb.pdf";
+    private static String filepath = "C:\\Users\\It'sMine\\Documents\\GitHub\\progass2\\Files\\1484kb.pdf";
+    private static String serverAddress = "10.12.111.24";
     private static String CACSEcrtPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\cacse.crt";
     private static int port = 4321;
 

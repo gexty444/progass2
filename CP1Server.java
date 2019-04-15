@@ -15,7 +15,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Scanner;
 
 //SecStore, leave file as a stream of bytes
-public class ServerWithSecurityCP1 {
+public class CP1Server {
 
     private static int port = 4321;
     private static String privateKeyPath = "C:\\Users\\It'sMine\\AndroidStudioProjects\\JavaTest\\Javatest\\src\\main\\java\\ass2\\example.org.der";
